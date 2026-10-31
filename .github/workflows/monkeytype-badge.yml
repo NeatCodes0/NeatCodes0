@@ -15,36 +15,57 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Fetch Stats and Update README
+        env:
+          API_KEY: ${{ secrets.MONKEYTYPE_API_KEY }}
         run: |
-          API_KEY="${{ secrets.MONKEYTYPE_API_KEY }}"
-          TIME_RES=$(curl -s -H "Authorization: ApeKey $API_KEY" "https://api.monkeytype.com/users/personalBests?mode=time")
-          WORD_RES=$(curl -s -H "Authorization: ApeKey $API_KEY" "https://api.monkeytype.com/users/personalBests?mode=words")
+          python3 -c '
+          import json, os, urllib.request, re
 
-          # Time Modes
-          T15_W=$(echo "$TIME_RES" | jq -r '.data["15"][0].wpm // "-"'); T15_A=$(echo "$TIME_RES" | jq -r '.data["15"][0].acc // "-"'); T15="${T15_W}wpm_${T15_A}%25"
-          T30_W=$(echo "$TIME_RES" | jq -r '.data["30"][0].wpm // "-"'); T30_A=$(echo "$TIME_RES" | jq -r '.data["30"][0].acc // "-"'); T30="${T30_W}wpm_${T30_A}%25"
-          T60_W=$(echo "$TIME_RES" | jq -r '.data["60"][0].wpm // "-"'); T60_A=$(echo "$TIME_RES" | jq -r '.data["60"][0].acc // "-"'); T60="${T60_W}wpm_${T60_A}%25"
-          T120_W=$(echo "$TIME_RES" | jq -r '.data["120"][0].wpm // "-"'); T120_A=$(echo "$TIME_RES" | jq -r '.data["120"][0].acc // "-"'); T120="${T120_W}wpm_${T120_A}%25"
+          api_key = os.environ["API_KEY"]
+          time_url = "https://api.monkeytype.com/users/personalBests?mode=time"
+          word_url = "https://api.monkeytype.com/users/personalBests?mode=words"
 
-          # Words Modes
-          W10_W=$(echo "$WORD_RES" | jq -r '.data["10"][0].wpm // "-"'); W10_A=$(echo "$WORD_RES" | jq -r '.data["10"][0].acc // "-"'); W10="${W10_W}wpm_${W10_A}%25"
-          W25_W=$(echo "$WORD_RES" | jq -r '.data["25"][0].wpm // "-"'); W25_A=$(echo "$WORD_RES" | jq -r '.data["25"][0].acc // "-"'); W25="${W25_W}wpm_${W25_A}%25"
-          W50_W=$(echo "$WORD_RES" | jq -r '.data["50"][0].wpm // "-"'); W50_A=$(echo "$WORD_RES" | jq -r '.data["50"][0].acc // "-"'); W50="${W50_W}wpm_${W50_A}%25"
-          W100_W=$(echo "$WORD_RES" | jq -r '.data["100"][0].wpm // "-"'); W100_A=$(echo "$WORD_RES" | jq -r '.data["100"][0].acc // "-"'); W100="${W100_W}wpm_${W100_A}%25"
+          def get_stats(url):
+              req = urllib.request.Request(url, headers={"Authorization": f"ApeKey {api_key}"})
+              with urllib.request.urlopen(req) as response:
+                  return json.loads(response.read().decode())
 
-          # Build Badge String with proper spacing
-          BADGES="[![15s](https://img.shields.io/badge/15s-${T15}-blueviolet)](https://monkeytype.com/)"
-          BADGES+=" [![30s](https://img.shields.io/badge/30s-${T30}-blue)](https://monkeytype.com/)"
-          BADGES+=" [![60s](https://img.shields.io/badge/60s-${T60}-green)](https://monkeytype.com/)"
-          BADGES+=" [![120s](https://img.shields.io/badge/120s-${T120}-yellow)](https://monkeytype.com/)"
-          BADGES+=" &nbsp;&nbsp;&nbsp;&nbsp; "
-          BADGES+="[![10w](https://img.shields.io/badge/10w-${W10}-red)](https://monkeytype.com/)"
-          BADGES+=" [![25w](https://img.shields.io/badge/25w-${W25}-orange)](https://monkeytype.com/)"
-          BADGES+=" [![50w](https://img.shields.io/badge/50w-${W50}-purple)](https://monkeytype.com/)"
-          BADGES+=" [![100w](https://img.shields.io/badge/100w-${W100}-pink)](https://monkeytype.com/)"
+          try:
+              time_data = get_stats(time_url)
+              word_data = get_stats(word_url)
 
-          # Replace in README
-          sed -i "s|<!-- MONKEYTYPE_BADGE -->.*|<!-- MONKEYTYPE_BADGE --> $BADGES|" README.md
+              badges = []
+              
+              # Time Modes
+              for mode, color in [("15", "blueviolet"), ("30", "blue"), ("60", "green"), ("120", "yellow")]:
+                  if mode in time_data.get("data", {}) and time_data["data"][mode]:
+                      wpm = time_data["data"][mode][0]["wpm"]
+                      acc = time_data["data"][mode][0]["acc"]
+                      badges.append(f"[![{mode}s](https://img.shields.io/badge/{mode}s-{wpm}wpm_{acc}%25-{color})](https://monkeytype.com/)")
+              
+              badges.append("<br>") # THIS ADDS A LINE BREAK
+              
+              # Words Modes
+              for mode, color in [("10", "red"), ("25", "orange"), ("50", "purple"), ("100", "pink")]:
+                  if mode in word_data.get("data", {}) and word_data["data"][mode]:
+                      wpm = word_data["data"][mode][0]["wpm"]
+                      acc = word_data["data"][mode][0]["acc"]
+                      badges.append(f"[![{mode}w](https://img.shields.io/badge/{mode}w-{wpm}wpm_{acc}%25-{color})](https://monkeytype.com/)")
+
+              badge_string = "\n".join(badges) # Proper markdown formatting
+              
+              with open("README.md", "r") as f:
+                  content = f.read()
+              
+              content = re.sub(r"<!-- MONKEYTYPE_BADGE -->.*", f"<!-- MONKEYTYPE_BADGE -->\n{badge_string}", content)
+              
+              with open("README.md", "w") as f:
+                  f.write(content)
+                  
+          except Exception as e:
+              print(f"Error: {e}")
+              exit(1)
+          '
 
       - name: Commit changes
         uses: stefanzweifel/git-auto-commit-action@v5
