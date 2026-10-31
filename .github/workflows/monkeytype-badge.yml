@@ -17,38 +17,53 @@ jobs:
       - name: Fetch Stats and Update README
         run: |
           API_KEY="${{ secrets.MONKEYTYPE_API_KEY }}"
-          
-          # Fetch time and words modes
           TIME_RES=$(curl -s -H "Authorization: ApeKey $API_KEY" "https://api.monkeytype.com/users/personalBests?mode=time")
           WORD_RES=$(curl -s -H "Authorization: ApeKey $API_KEY" "https://api.monkeytype.com/users/personalBests?mode=words")
 
-          # Function to extract and format
-          get_stat() {
-            echo "$1" | jq -r ".data[\"$2\"][0] | \"${3}wpm_\(.acc)%25\""
-          }
-
           # Time Modes
-          T15=$(get_stat "$TIME_RES" "15" "15s-")
-          T30=$(get_stat "$TIME_RES" "30" "30s-")
-          T60=$(get_stat "$TIME_RES" "60" "60s-")
-          T120=$(get_stat "$TIME_RES" "120" "120s-")
+          T15_W=$(echo "$TIME_RES" | jq -r '.data["15"][0].wpm // "-"')
+          T15_A=$(echo "$TIME_RES" | jq -r '.data["15"][0].acc // "-"')
+          T15="${T15_W}wpm_${T15_A}%25"
 
-          # Word Modes
-          W10=$(get_stat "$WORD_RES" "10" "10w-")
-          W25=$(get_stat "$WORD_RES" "25" "25w-")
-          W50=$(get_stat "$WORD_RES" "50" "50w-")
-          W100=$(get_stat "$WORD_RES" "100" "100w-")
+          T30_W=$(echo "$TIME_RES" | jq -r '.data["30"][0].wpm // "-"')
+          T30_A=$(echo "$TIME_RES" | jq -r '.data["30"][0].acc // "-"')
+          T30="${T30_W}wpm_${T30_A}%25"
 
-          # Build Badge String (Using different colors for time/words)
-          BADGES="[![15s](https://img.shields.io/badge/${T15}-blueviolet)](https://monkeytype.com/) "
-          BADGES+="[![30s](https://img.shields.io/badge/${T30}-blue)](https://monkeytype.com/) "
-          BADGES+="[![60s](https://img.shields.io/badge/${T60}-green)](https://monkeytype.com/) "
-          BADGES+="[![120s](https://img.shields.io/badge/${T120}-yellow)](https://monkeytype.com/) "
-          BADGES+=" | " # Separator between time and words
-          BADGES+="[![10w](https://img.shields.io/badge/${W10}-red)](https://monkeytype.com/) "
-          BADGES+="[![25w](https://img.shields.io/badge/${W25}-orange)](https://monkeytype.com/) "
-          BADGES+="[![50w](https://img.shields.io/badge/${W50}-purple)](https://monkeytype.com/) "
-          BADGES+="[![100w](https://img.shields.io/badge/${W100}-pink)](https://monkeytype.com/)"
+          T60_W=$(echo "$TIME_RES" | jq -r '.data["60"][0].wpm // "-"')
+          T60_A=$(echo "$TIME_RES" | jq -r '.data["60"][0].acc // "-"')
+          T60="${T60_W}wpm_${T60_A}%25"
+
+          T120_W=$(echo "$TIME_RES" | jq -r '.data["120"][0].wpm // "-"')
+          T120_A=$(echo "$TIME_RES" | jq -r '.data["120"][0].acc // "-"')
+          T120="${T120_W}wpm_${T120_A}%25"
+
+          # Words Modes
+          W10_W=$(echo "$WORD_RES" | jq -r '.data["10"][0].wpm // "-"')
+          W10_A=$(echo "$WORD_RES" | jq -r '.data["10"][0].acc // "-"')
+          W10="${W10_W}wpm_${W10_A}%25"
+
+          W25_W=$(echo "$WORD_RES" | jq -r '.data["25"][0].wpm // "-"')
+          W25_A=$(echo "$WORD_RES" | jq -r '.data["25"][0].acc // "-"')
+          W25="${W25_W}wpm_${W25_A}%25"
+
+          W50_W=$(echo "$WORD_RES" | jq -r '.data["50"][0].wpm // "-"')
+          W50_A=$(echo "$WORD_RES" | jq -r '.data["50"][0].acc // "-"')
+          W50="${W50_W}wpm_${W50_A}%25"
+
+          W100_W=$(echo "$WORD_RES" | jq -r '.data["100"][0].wpm // "-"')
+          W100_A=$(echo "$WORD_RES" | jq -r '.data["100"][0].acc // "-"')
+          W100="${W100_W}wpm_${W100_A}%25"
+
+          # Build Badge String
+          BADGES="[![15s](https://img.shields.io/badge/15s-${T15}-blueviolet)](https://monkeytype.com/) "
+          BADGES+="[![30s](https://img.shields.io/badge/30s-${T30}-blue)](https://monkeytype.com/) "
+          BADGES+="[![60s](https://img.shields.io/badge/60s-${T60}-green)](https://monkeytype.com/) "
+          BADGES+="[![120s](https://img.shields.io/badge/120s-${T120}-yellow)](https://monkeytype.com/) "
+          BADGES+="&nbsp;&nbsp;&nbsp;&nbsp;" 
+          BADGES+="[![10w](https://img.shields.io/badge/10w-${W10}-red)](https://monkeytype.com/) "
+          BADGES+="[![25w](https://img.shields.io/badge/25w-${W25}-orange)](https://monkeytype.com/) "
+          BADGES+="[![50w](https://img.shields.io/badge/50w-${W50}-purple)](https://monkeytype.com/) "
+          BADGES+="[![100w](https://img.shields.io/badge/100w-${W100}-pink)](https://monkeytype.com/)"
 
           # Replace in README
           sed -i "s|<!-- MONKEYTYPE_BADGE -->.*|<!-- MONKEYTYPE_BADGE --> $BADGES|" README.md
