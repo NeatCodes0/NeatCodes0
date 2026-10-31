@@ -1,4 +1,4 @@
-## Hi there 👋
+## Monkeytype.com Stats: 
 
 <!-- MONKEYTYPE_BADGE -->
 **Time:** [![15s](https://img.shields.io/badge/15s-123wpm_99%25-blueviolet?logo=monkeytype&logoColor=white)](https://monkeytype.com/profile/toxicSnail) [![30s](https://img.shields.io/badge/30s-108wpm_97%25-blue?logo=monkeytype&logoColor=white)](https://monkeytype.com/profile/toxicSnail) [![60s](https://img.shields.io/badge/60s-101wpm_97%25-green?logo=monkeytype&logoColor=white)](https://monkeytype.com/profile/toxicSnail) [![120s](https://img.shields.io/badge/120s-97wpm_95%25-yellow?logo=monkeytype&logoColor=white)](https://monkeytype.com/profile/toxicSnail) <br>
