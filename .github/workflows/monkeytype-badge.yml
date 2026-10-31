@@ -1,24 +1,40 @@
-name: Monkeytype Readme
+name: Update Monkeytype Badge
 
 on:
-  workflow_dispatch:
   schedule:
-    - cron: '0 0 * * 0'
+    - cron: '0 0 * * *' # Roz raat 12 baje chalega
+  workflow_dispatch:
 
 permissions:
   contents: write
 
 jobs:
-  update-readme:
-    name: Update README
+  update-badge:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
     steps:
-      - uses: vnphanquang/monkeytype-readme@main
+      - uses: actions/checkout@v4
+
+      - name: Fetch Stats and Update README
+        run: |
+          # API se 30-second test ka data fetch karo
+          RESPONSE=$(curl -s -H "Authorization: ApeKey ${{ secrets.MONKEYTYPE_API_KEY }}" "https://api.monkeytype.com/users/personalBests?mode=time")
+          
+          # WPM nikaalo
+          WPM=$(echo "$RESPONSE" | jq -r '.data["30"][0].wpm')
+          
+          # Agar test nahi diya hai toh error do
+          if [ "$WPM" == "null" ]; then 
+            echo "No 30s test found. Please do a 30s test on Monkeytype."
+            exit 1
+          fi
+
+          # Badge ka markdown banao
+          BADGE="[![Monkeytype](https://img.shields.io/badge/Monkeytype-${WPM}_WPM-blue)](https://monkeytype.com/)"
+          
+          # README mein placeholder dhoondo aur replace karo
+          sed -i "s|<!-- MONKEYTYPE_BADGE -->.*|<!-- MONKEYTYPE_BADGE --> $BADGE|" README.md
+
+      - name: Commit changes
+        uses: stefanzweifel/git-auto-commit-action@v5
         with:
-          monkeytype_api_key: ${{ secrets.MONKEYTYPE_API_KEY }}
-          mode: 'time'
-          mode2: '30'
-          style: 'flat'
-          logoVariant: 'one'
-          label: 'monkeytype'
+          commit_message: "chore: update monkeytype badge"
