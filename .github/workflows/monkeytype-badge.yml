@@ -24,6 +24,9 @@ jobs:
           api_key = os.environ["API_KEY"]
           time_url = "https://api.monkeytype.com/users/personalBests?mode=time"
           word_url = "https://api.monkeytype.com/users/personalBests?mode=words"
+          
+          # Tumhari profile ka link (Username change karna ho toh yahan badal lena)
+          PROFILE_URL = "https://monkeytype.com/profile/toxicSnail"
 
           def get_stats(url):
               req = urllib.request.Request(url, headers={"Authorization": f"ApeKey {api_key}"})
@@ -37,27 +40,31 @@ jobs:
               badges = []
               
               # Time Modes
+              badges.append("**Time:**")
               for mode, color in [("15", "blueviolet"), ("30", "blue"), ("60", "green"), ("120", "yellow")]:
                   if mode in time_data.get("data", {}) and time_data["data"][mode]:
-                      wpm = time_data["data"][mode][0]["wpm"]
-                      acc = time_data["data"][mode][0]["acc"]
-                      badges.append(f"[![{mode}s](https://img.shields.io/badge/{mode}s-{wpm}wpm_{acc}%25-{color})](https://monkeytype.com/)")
+                      wpm = int(time_data["data"][mode][0]["wpm"])
+                      acc = int(time_data["data"][mode][0]["acc"])
+                      # URL mein ?logo=monkeytype add kiya aur link profile ka kar diya
+                      badges.append(f"[![{mode}s](https://img.shields.io/badge/{mode}s-{wpm}wpm_{acc}%25-{color}?logo=monkeytype&logoColor=white)]({PROFILE_URL})")
               
-              badges.append("<br>") # THIS ADDS A LINE BREAK
+              badges.append("<br>") 
               
               # Words Modes
+              badges.append("**Words:**")
               for mode, color in [("10", "red"), ("25", "orange"), ("50", "purple"), ("100", "pink")]:
                   if mode in word_data.get("data", {}) and word_data["data"][mode]:
-                      wpm = word_data["data"][mode][0]["wpm"]
-                      acc = word_data["data"][mode][0]["acc"]
-                      badges.append(f"[![{mode}w](https://img.shields.io/badge/{mode}w-{wpm}wpm_{acc}%25-{color})](https://monkeytype.com/)")
+                      wpm = int(word_data["data"][mode][0]["wpm"])
+                      acc = int(word_data["data"][mode][0]["acc"])
+                      badges.append(f"[![{mode}w](https://img.shields.io/badge/{mode}w-{wpm}wpm_{acc}%25-{color}?logo=monkeytype&logoColor=white)]({PROFILE_URL})")
 
-              badge_string = "\n".join(badges) # Proper markdown formatting
+              badge_string = " ".join(badges) # Space se separate kiya
+              badge_string = badge_string.replace("<br> ", "<br>\n") # Line break properly handle kiya
               
               with open("README.md", "r") as f:
                   content = f.read()
               
-              content = re.sub(r"<!-- MONKEYTYPE_BADGE -->.*", f"<!-- MONKEYTYPE_BADGE -->\n{badge_string}", content)
+              content = re.sub(r"<!-- MONKEYTYPE_BADGE -->.*", f"<!-- MONKEYTYPE_BADGE -->\n{badge_string}", content, flags=re.DOTALL)
               
               with open("README.md", "w") as f:
                   f.write(content)
@@ -70,4 +77,4 @@ jobs:
       - name: Commit changes
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
-          commit_message: "chore: update detailed monkeytype stats"
+          commit_message: "chore: make monkeytype badges pro"
