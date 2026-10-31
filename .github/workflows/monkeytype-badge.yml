@@ -1,8 +1,8 @@
-name: Update Monkeytype Badge
+name: Update Monkeytype Stats
 
 on:
   schedule:
-    - cron: '0 0 * * *' # Roz raat 12 baje chalega
+    - cron: '0 0 * * *'
   workflow_dispatch:
 
 permissions:
@@ -16,25 +16,44 @@ jobs:
 
       - name: Fetch Stats and Update README
         run: |
-          # API se 30-second test ka data fetch karo
-          RESPONSE=$(curl -s -H "Authorization: ApeKey ${{ secrets.MONKEYTYPE_API_KEY }}" "https://api.monkeytype.com/users/personalBests?mode=time")
+          API_KEY="${{ secrets.MONKEYTYPE_API_KEY }}"
           
-          # WPM nikaalo
-          WPM=$(echo "$RESPONSE" | jq -r '.data["30"][0].wpm')
-          
-          # Agar test nahi diya hai toh error do
-          if [ "$WPM" == "null" ]; then 
-            echo "No 30s test found. Please do a 30s test on Monkeytype."
-            exit 1
-          fi
+          # Fetch time and words modes
+          TIME_RES=$(curl -s -H "Authorization: ApeKey $API_KEY" "https://api.monkeytype.com/users/personalBests?mode=time")
+          WORD_RES=$(curl -s -H "Authorization: ApeKey $API_KEY" "https://api.monkeytype.com/users/personalBests?mode=words")
 
-          # Badge ka markdown banao
-          BADGE="[![Monkeytype](https://img.shields.io/badge/Monkeytype-${WPM}_WPM-blue)](https://monkeytype.com/)"
-          
-          # README mein placeholder dhoondo aur replace karo
-          sed -i "s|<!-- MONKEYTYPE_BADGE -->.*|<!-- MONKEYTYPE_BADGE --> $BADGE|" README.md
+          # Function to extract and format
+          get_stat() {
+            echo "$1" | jq -r ".data[\"$2\"][0] | \"${3}wpm_\(.acc)%25\""
+          }
+
+          # Time Modes
+          T15=$(get_stat "$TIME_RES" "15" "15s-")
+          T30=$(get_stat "$TIME_RES" "30" "30s-")
+          T60=$(get_stat "$TIME_RES" "60" "60s-")
+          T120=$(get_stat "$TIME_RES" "120" "120s-")
+
+          # Word Modes
+          W10=$(get_stat "$WORD_RES" "10" "10w-")
+          W25=$(get_stat "$WORD_RES" "25" "25w-")
+          W50=$(get_stat "$WORD_RES" "50" "50w-")
+          W100=$(get_stat "$WORD_RES" "100" "100w-")
+
+          # Build Badge String (Using different colors for time/words)
+          BADGES="[![15s](https://img.shields.io/badge/${T15}-blueviolet)](https://monkeytype.com/) "
+          BADGES+="[![30s](https://img.shields.io/badge/${T30}-blue)](https://monkeytype.com/) "
+          BADGES+="[![60s](https://img.shields.io/badge/${T60}-green)](https://monkeytype.com/) "
+          BADGES+="[![120s](https://img.shields.io/badge/${T120}-yellow)](https://monkeytype.com/) "
+          BADGES+=" | " # Separator between time and words
+          BADGES+="[![10w](https://img.shields.io/badge/${W10}-red)](https://monkeytype.com/) "
+          BADGES+="[![25w](https://img.shields.io/badge/${W25}-orange)](https://monkeytype.com/) "
+          BADGES+="[![50w](https://img.shields.io/badge/${W50}-purple)](https://monkeytype.com/) "
+          BADGES+="[![100w](https://img.shields.io/badge/${W100}-pink)](https://monkeytype.com/)"
+
+          # Replace in README
+          sed -i "s|<!-- MONKEYTYPE_BADGE -->.*|<!-- MONKEYTYPE_BADGE --> $BADGES|" README.md
 
       - name: Commit changes
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
-          commit_message: "chore: update monkeytype badge"
+          commit_message: "chore: update detailed monkeytype stats"
